@@ -14,7 +14,7 @@ export interface Submission {
     error?: string; // New: To track errors per user
   }
   
-  export const fetchUserSubmissions = async (handle: string): Promise<UserSolvedProblems> => {
+  export const fetchWeeklySubmissions = async (handle: string): Promise<UserSolvedProblems> => {
     try {
       const response = await fetch(
         `https://codeforces.com/api/user.status?handle=${handle}&from=1&count=10000`
@@ -26,16 +26,20 @@ export interface Submission {
       }
   
       const solvedProblems = new Set<string>();
+      const oneWeekAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Convert milliseconds → seconds
   
-      data.result.forEach((submission: Submission) => {
+      data.result.forEach((submission: any) => {
         if (submission.verdict === "OK") {
-          const problemId = `${submission.problem.contestId}-${submission.problem.index}`;
-          solvedProblems.add(problemId);
+          const submissionTime = submission.creationTimeSeconds; // Correct timestamp format
+          if (submissionTime >= oneWeekAgo) {
+            const problemId = `${submission.problem.contestId}-${submission.problem.index}`;
+            solvedProblems.add(problemId);
+          }
         }
       });
   
       if (solvedProblems.size === 0) {
-        return { handle, solvedProblems, error: "No problems solved." };
+        return { handle, solvedProblems, error: "No problems solved in the last week." };
       }
   
       return { handle, solvedProblems };
