@@ -19,10 +19,8 @@ export async function POST(req: Request) {
   if (error || !data) {
     return NextResponse.json({ error: "Invalid handle or password" }, { status: 401 });
   }
-
   if (data.password !== password) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
-
-  return NextResponse.json({ success: true, handle });
+  return NextResponse.json({ success: true, handle, password});
 }

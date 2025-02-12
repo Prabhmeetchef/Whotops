@@ -2,24 +2,24 @@
 import { useState, useEffect } from "react";
 import { fetchUserData, UserData } from "@/lib/codeforces";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { User, Users } from "lucide-react";
 
 interface Group {
   name: string;
-  member: string[]; // Array of handles
+  member: string[];
 }
 
 export default function Dashboard() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [groupMembersData, setGroupMembersData] = useState<UserData[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     const handle = localStorage.getItem("userHandle");
     if (!handle) {
-      router.push("/"); // Redirect to login if no handle found
+      router.push("/");
       return;
     }
     fetchData(handle);
@@ -42,8 +42,6 @@ export default function Dashboard() {
       });
 
       const data = await res.json();
-      console.log("Fetched groups data:", data.groups); // Debugging log
-
       if (data.groups) {
         setGroups(
           data.groups.map((g: { name?: string; member?: string[] }) => ({
@@ -57,127 +55,66 @@ export default function Dashboard() {
     }
   };
 
-  const openGroupModal = async (group: Group) => {
-    setSelectedGroup(group);
-    setGroupMembersData([]); // Reset previous data
-
-    const membersData = await Promise.all(
-      group.member.map(async (handle) => {
-        const userData = await fetchUserData(handle);
-        return userData;
-      })
-    );
-
-    // Sort members by weekly solved (descending)
-    const sortedData = membersData
-      .filter((user) => !user.error) // Remove users with errors
-      .sort((a, b) => b.weeklySolved - a.weeklySolved);
-
-    setGroupMembersData(sortedData);
-  };
-
-  const closeModal = () => {
-    setSelectedGroup(null);
-    setGroupMembersData([]);
-  };
-
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-6 bg-black">
-      <div className="bg-[#0f0f0f] shadow-lg rounded-lg p-6 w-full max-w-2xl text-center">
-        <h1 className="text-white text-2xl font-bold">Dashboard</h1>
+    <main className="flex flex-col items-center min-h-screen p-6 bg-black">
+      <header className="w-full mb-12">
+        <Image
+          src="/whotops_logo.png"
+          alt="Whotops Logo"
+          width={120}
+          height={60}
+        />
+      </header>
+
+      <div className="bg-[#0f0f0f] shadow-lg rounded-lg p-6 w-full max-w-2xl mb-10">
         {loading ? (
-          <p className="text-gray-400 mt-4">Loading...</p>
+          <p className="text-gray-400 mt-4">Fetching Profile</p>
         ) : userData ? (
-          <div className="mt-4 text-white">
-            <p className="text-lg font-semibold">{userData.handle}</p>
-            <p>Total Solved: {userData.totalSolved}</p>
-            <p>Solved This Week: {userData.weeklySolved}</p>
-            {userData.error && <p className="text-red-500">{userData.error}</p>}
+          <div className="text-white">
+            <p className="text-2xl font-semibold text-[#e96eff] mb-6 flex gap-2">
+              <button onClick={() => router.push('/profile')} className="bg-black p-1 border-gray-800 border-2 rounded-[6px]">
+                <User className="text-white" />
+              </button>
+              {userData.handle}
+            </p>
+            <div className="flex gap-6">
+              <p>Total Solved: {userData.totalSolved}</p>
+              <p>Solved This Week: {userData.weeklySolved}</p>
+            </div>
           </div>
         ) : (
           <p className="text-gray-400 mt-4">No user data available.</p>
         )}
-
-        {/* Group Section */}
-        <div className="mt-6 w-full">
-          <h2 className="text-lg text-purple-400 font-semibold mb-2">
-            Your Groups
-          </h2>
-          {groups.length > 0 ? (
-            <table className="w-full border-collapse border border-gray-600 text-white">
-              <thead>
-                <tr className="bg-gray-800">
-                  <th className="border border-gray-600 px-4 py-2">Group Name</th>
-                  <th className="border border-gray-600 px-4 py-2">Members</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group, index) => (
-                  <tr
-                    key={index}
-                    className="border border-gray-600 cursor-pointer hover:bg-gray-700"
-                    onClick={() => openGroupModal(group)}
-                  >
-                    <td className="border border-gray-600 px-4 py-2">{group.name}</td>
-                    <td className="border border-gray-600 px-4 py-2">{group.member.length}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-gray-500">You are not in any groups.</p>
-          )}
-        </div>
       </div>
 
-      {/* Modal */}
-      {selectedGroup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75">
-          <div className="bg-[#0f0f0f] p-6 rounded-lg w-full max-w-lg">
-            <h2 className="text-white text-2xl font-bold">{selectedGroup.name}</h2>
-            <button className="text-red-500 float-right" onClick={closeModal}>
-              ✖
-            </button>
-            <table className="min-w-full bg-[#0f0f0f] shadow-md rounded-lg overflow-hidden mt-4">
-              <thead className="bg-[#2b2b2b] text-white">
-                <tr>
-                  <th className="py-3 px-6 text-left">Rank</th>
-                  <th className="py-3 px-6 text-left">Handle</th>
-                  <th className="py-3 px-6 text-left">Weekly Solved</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupMembersData.map(({ handle, weeklySolved }, index) => (
-                  <tr
-                    key={handle}
-                    className={` ${
-                      index === 0
-                        ? "bg-[#0f0f0f]"
-                        : index === 1
-                        ? "bg-[#0f0f0f]"
-                        : ""
-                    }`}
-                  >
-                    <td className="py-3 px-6 font-bold text-white">
-                      {index === 0
-                        ? "🥇"
-                        : index === 1
-                        ? "🥈"
-                        : index === 2
-                        ? "🥉"
-                        : index + 1}
-                    </td>
-                    <td className="py-3 px-6 font-normal text-[#e96eff]">
-                      {handle}
-                    </td>
-                    <td className="py-3 px-6 text-green-600">{weeklySolved}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <div className="bg-[#0f0f0f] shadow-lg rounded-lg p-6 w-full max-w-2xl">
+        <h2 className="text-2xl text-white font-semibold mb-6">Your Groups</h2>
+        {groups.length > 0 ? (
+          groups.map((group, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center bg-[#181818] p-4 rounded-lg mb-2 cursor-pointer text-white"
+              onClick={() =>
+                router.push(
+                  `/group?name=${encodeURIComponent(
+                    group.name
+                  )}&members=${encodeURIComponent(
+                    JSON.stringify(group.member)
+                  )}`
+                )
+              }
+            >
+              <span className="flex gap-[10px] justify-center items-center">
+                <Users className="opacity-30" />
+                {group.name}
+              </span>
+              <p className="opacity-30">{group.member.length} members</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">You are not in any groups.</p>
+        )}
+      </div>
     </main>
   );
 }
