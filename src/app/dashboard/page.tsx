@@ -13,7 +13,8 @@ interface Group {
 export default function Dashboard() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingGroups, setLoadingGroups] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,13 +28,14 @@ export default function Dashboard() {
   }, []);
 
   const fetchData = async (handle: string) => {
-    setLoading(true);
+    setLoadingUser(true);
     const data = await fetchUserData(handle);
     setUserData(data);
-    setLoading(false);
+    setLoadingUser(false);
   };
 
   const fetchGroups = async (handle: string) => {
+    setLoadingGroups(true);
     try {
       const res = await fetch("/api/groups", {
         method: "POST",
@@ -50,6 +52,7 @@ export default function Dashboard() {
           }))
         );
       }
+      setLoadingGroups(false);
     } catch (error) {
       console.error("Error fetching groups:", error);
     }
@@ -67,7 +70,7 @@ export default function Dashboard() {
       </header>
 
       <div className="bg-[#0f0f0f] shadow-lg rounded-lg p-6 w-full max-w-2xl mb-10">
-        {loading ? (
+        {loadingUser ? (
           <p className="text-gray-400 mt-4">Fetching Profile</p>
         ) : userData ? (
           <div className="text-white">
@@ -89,7 +92,10 @@ export default function Dashboard() {
 
       <div className="bg-[#0f0f0f] shadow-lg rounded-lg p-6 w-full max-w-2xl">
         <h2 className="text-2xl text-white font-semibold mb-6">Your Groups</h2>
-        {groups.length > 0 ? (
+        {loadingGroups ? (
+          <p className="text-gray-400 mt-4">Fetching Groups</p>
+        ) : 
+        groups.length > 0 ? (
           groups.map((group, index) => (
             <div
               key={index}
